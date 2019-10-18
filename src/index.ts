@@ -18,7 +18,11 @@ export { FifoMatchmaker, LobbyMaker };
 
 // console.log(lobby.listRooms());
 // lobby.joinRoom(id, { id: 21 }, "bacon");
-// lobby.start(id);
+// console.log(lobby.listRooms());
+// lobby.leaveRoom(id, { id: 22 });
+// lobby.leaveRoom(id, { id: 21 });
+// console.log(lobby.listRooms());
+// lobby.startGame(id);
 ////////////////////////////////////////////////////////////////////////
 
 

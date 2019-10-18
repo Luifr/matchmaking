@@ -1,11 +1,11 @@
 {
   "name": "matchmaking",
-  "version": "0.4.22",
+  "version": "0.4.3",
   "description": "Create matches or lobbies for two or more players/objects",
   "main": "javascript/index.js",
   "types": "javascript/index.d.ts",
-  "prepublish": "tsc",
   "scripts": {
+    "prepublishOnly": "tsc",
     "test": "echo \"Error: no test specified\" && exit 1",
     "build": "tsc",
     "start": "tsc; node javascript/index.js"

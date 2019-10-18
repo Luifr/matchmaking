@@ -79,15 +79,17 @@ mm.push(player2);
 #### Player
 
 - The player will be mentioned a lot here
-- By player a mean a generic object
+- By player i mean a generic object
 	- As use in the example above, just a plain object with an id
 	- The player can be anything and depends on your project/game
 
 #### FifoMatchmaker
 
-- `constructor(resolver, options)`
+- `constructor(resolver, getKey, options)`
 	- `resolver(players)` - A function that will be called whenever there are enough players to start a game
 		- `players` - a array with all the players in that game
+	- `getKey(player)` - A function that will extract the id of a player
+		- `player` - The player whose id will be extrected
 	- `options` - [OPTIONAL] - A object with settings for the matchmaker
 		- `checkInterval` - The interval in milliseconds to try to start new games
 		- `maxMatchSize` - Maximum number of players in a room
@@ -97,6 +99,9 @@ mm.push(player2);
 		- `player` - The object containing all player information
 	- `return`
 		- void
+- `leaveQueue(player)`
+	- `parameters`
+		- `player` - The player with its ID
 
 #### LobbyMaker
 - `constructor(resolver, options)`
@@ -117,6 +122,10 @@ mm.push(player2);
 			- `autoStartWithMaxSize` - If true, the lobby will autostart when lobby is full is reached
 	- `return`
 		- The unique room Identifier (number)
+- `leaveRoom = (roomId, player)`
+	- `parameters`
+		- `roomId` - The room to be leaved
+		- `player` - The player that will leave the room
 - `deleteRoom(roomId)`
 	- `parameters`
 		- `roomId` - The room id that will be deleted

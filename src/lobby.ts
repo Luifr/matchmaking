@@ -92,6 +92,19 @@ export class LobbyMaker {
 		this.resolver(room.players);
 	}
 
+	public leaveRoom = (roomId: number, player: any) => {
+		let playerKey = this.getKey(player);
+		if (!this.rooms.has(roomId))
+			throw "Room does not exist";
+		let room = this.rooms.get(roomId) as Room;
+		let index = room.players.findIndex(player => this.getKey(player) == playerKey);
+		if (index == -1)
+			throw "Player not in lobby";
+		room.players.splice(index, 1);
+		if (room.players.length == 0)
+			this.deleteRoom(roomId);
+	}
+
 	public deleteRoom = (roomId: number) => {
 		this.rooms.delete(roomId);
 	}
