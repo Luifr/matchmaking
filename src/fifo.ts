@@ -12,7 +12,7 @@ export class FifoMatchmaker extends Matchmaker {
 		setInterval(this.FifoMatch, this.checkInterval);
 	}
 
-	private FifoMatch = () => {
+	private FifoMatch = (): void => {
 		let players: any[];
 		while (this.queue.length >= this.minMatchSize) {
 			players = [];

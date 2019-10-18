@@ -102,6 +102,8 @@ mm.push(player2);
 - `leaveQueue(player)`
 	- `parameters`
 		- `player` - The player with its ID
+	- `return`
+		- void
 
 #### LobbyMaker
 - `constructor(resolver, options)`
@@ -144,6 +146,14 @@ mm.push(player2);
 		- `roomId` - The room to start the game, this will call the `resolver` function passed in constructor
 	- `return` - void
 ---
+
+#### Error handling
+
+- All functions that can return error, will do returning e Error object
+	- To check for errors do the followig
+		- mehtod() instanceof Error
+		- [Error class documentation](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Error)
+
 ## Authors
 
 * **Lui Franco Rocha**

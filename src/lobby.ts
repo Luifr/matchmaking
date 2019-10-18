@@ -1,3 +1,13 @@
+let errorMessages = {
+	roomIsFull: "Room is full",
+	roomNotFound: "Room not found",
+	playerAlreadyInRoom: "Player already in room",
+	playerNotInRoom: "Player is not in room",
+	wrongPassword: "Wrong password",
+	passwordRequried: "Password is required",
+	morePlayersToStart: "Room needs more players to start"
+};
+
 interface ILobbyMakerSettings {
 	maxLobbySize: number;
 	minLobbySize: number;
@@ -30,6 +40,9 @@ interface Room {
 	settings: ILobbyMakerSettings;
 }
 
+// TODO check for duplicates in room name
+// TODO expiry time
+// TODO idle time
 export class LobbyMaker {
 
 	resolver: (players: any[]) => void;
@@ -42,28 +55,37 @@ export class LobbyMaker {
 		this.rooms = new Map<number, any>();
 		this.getKey = getKey;
 		this.nextFreeId = Number.MIN_SAFE_INTEGER;
-
 	}
 
-	public createRoom = (player: any, roomName: string, options?: ILobbyMakerOptions): number => {
+	public createRoom = (newPlayer: any, roomName: string, options?: ILobbyMakerOptions): number | Error => {
+		let playerKey = this.getKey(newPlayer);
+
+		for (let player of Array.from(this.rooms.values()).map(val => val.players).flat()) {
+			if (this.getKey(player) == playerKey) {
+				return new Error(errorMessages.playerAlreadyInRoom);
+			}
+		}
+
 		let settings: ILobbyMakerSettings = this.getRoomSettings(options);
-		this.rooms.set(this.nextFreeId, { players: [player], settings, name: roomName });
+		this.rooms.set(this.nextFreeId, { players: [newPlayer], settings, name: roomName });
 		return this.nextFreeId++;
 	}
 
-	public joinRoom = (roomId: number, newPlayer: any, password?: string) => {
+	public joinRoom = (roomId: number, newPlayer: any, password?: string): void | Error => {
 		if (!this.rooms.has(roomId))
-			throw "Room not found";
-		//@ts-ignore
-		let room: Room = this.rooms.get(roomId);
+			return new Error(errorMessages.roomNotFound);
+
+		let room = this.rooms.get(roomId) as Room;
 		if (room.settings.maxLobbySize == room.players.length)
-			throw "Room is full";
-		if (room.settings.password != "" && (!password || password != room.settings.password))
-			throw "Password problem";
+			return new Error(errorMessages.roomIsFull);
+		if (room.settings.password != "" && !password)
+			return new Error(errorMessages.passwordRequried);
+		if (room.settings.password != "" && password != room.settings.password)
+			return new Error(errorMessages.wrongPassword);
 		let newPlayerKey = this.getKey(newPlayer);
 		for (let player of room.players) {
 			if (this.getKey(player) == newPlayerKey) {
-				throw "Player already in room"
+				return new Error(errorMessages.playerAlreadyInRoom);
 			}
 		}
 		room.players.push(newPlayer);
@@ -82,24 +104,24 @@ export class LobbyMaker {
 		}
 	}
 
-	public startGame = (roomId: any) => {
+	public startGame = (roomId: any): void | Error => {
 		if (!this.rooms.has(roomId))
-			throw "Room not found";
-		//@ts-ignore
-		let room: Room = this.rooms.get(roomId);
+			return new Error(errorMessages.roomNotFound);
+
+		let room: Room = this.rooms.get(roomId) as Room;
 		if (room.settings.minLobbySize > room.players.length)
-			throw "Lobby needs more players to start";
+			return new Error(errorMessages.morePlayersToStart);
 		this.resolver(room.players);
 	}
 
-	public leaveRoom = (roomId: number, player: any) => {
+	public leaveRoom = (roomId: number, player: any): void | Error => {
 		let playerKey = this.getKey(player);
 		if (!this.rooms.has(roomId))
-			throw "Room does not exist";
+			return new Error(errorMessages.roomNotFound);
 		let room = this.rooms.get(roomId) as Room;
 		let index = room.players.findIndex(player => this.getKey(player) == playerKey);
 		if (index == -1)
-			throw "Player not in lobby";
+			return new Error(errorMessages.playerNotInRoom);
 		room.players.splice(index, 1);
 		if (room.players.length == 0)
 			this.deleteRoom(roomId);

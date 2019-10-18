@@ -1,19 +1,24 @@
+let errorMessages = {
+	playerInQueue: "Player is already in queue",
+	playerNotInQueue: "Player is not in queue",
+};
+
 export interface IMatchMakerOptions {
 	checkInterval?: number;
 	maxMatchSize?: number;
 	minMatchSize?: number;
 }
 
-
+// TODO expiry time
 export class Matchmaker {
 
 	protected resolver: (players: any[]) => void;
 	protected getKey: (player: any) => string;
 	protected queue: any[];
 
-	checkInterval: number; // Time to check for players, value in milliseconds defaults to 5000
-	maxMatchSize: number;
-	minMatchSize: number;
+	protected checkInterval: number; // Time to check for players, value in milliseconds defaults to 5000
+	protected maxMatchSize: number;
+	protected minMatchSize: number;
 
 	get playersInQueue(): number {
 		return this.queue.length;
@@ -30,18 +35,18 @@ export class Matchmaker {
 
 	}
 
-	public push = (player: any) => {
+	public push = (player: any): void | Error => {
 		let playerKey = this.getKey(player);
 		if (this.queue.find((player) => { return this.getKey(player) == playerKey; }))
-			throw "User already in queue";
+			return new Error(errorMessages.playerInQueue);
 		this.queue.push(player);
 	}
 
-	public leaveQueue(player: any) {
+	public leaveQueue(player: any): void | Error {
 		let playerKey = this.getKey(player);
 		let index = this.queue.findIndex((player) => { return this.getKey(player) == playerKey; });
 		if (index == -1)
-			throw "User not in queue";
+			return new Error(errorMessages.playerNotInQueue);
 		this.queue.splice(index, 1);
 	}
 
