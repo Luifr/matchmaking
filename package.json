@@ -1,6 +1,6 @@
 {
   "name": "matchmaking",
-  "version": "0.4.11",
+  "version": "0.4.2",
   "description": "Create matches or lobbies for two or more players/objects",
   "main": "javascript/index.js",
   "types": "javascript/index.d.ts",

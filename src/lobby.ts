@@ -32,12 +32,12 @@ interface Room {
 
 export class LobbyMaker {
 
-	resolver: (...players: any[]) => void;
+	resolver: (players: any[]) => void;
 	protected rooms: Map<number, Room>;
 	getKey: (player: any) => string; // key should be unique
 	nextFreeId: number;
 
-	constructor(resolver: (...players: any[]) => void, getKey: (player: any) => string) {
+	constructor(resolver: (players: any[]) => void, getKey: (player: any) => string) {
 		this.resolver = resolver;
 		this.rooms = new Map<number, any>();
 		this.getKey = getKey;

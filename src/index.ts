@@ -24,10 +24,12 @@ export { FifoMatchmaker, LobbyMaker };
 
 
 // FIFO TEST ////////////////////////////////
-// let mm = new FifoMatchmaker(runGame, { checkInterval: 2000 });
+// let mm = new FifoMatchmaker(runGame, p => p.id, { checkInterval: 2000, maxMatchSize: 3, minMatchSize: 2 });
 // mm.push({ id: 1 });
 // mm.push({ id: 2 });
 // mm.push({ id: 3 });
+// mm.push({ id: 4 });
+// mm.push({ id: 5 });
 
 // setTimeout(() => mm.push({ id: 2 }), 4000);
 // setTimeout(() => mm.push({ id: 2 }), 4000);

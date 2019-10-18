@@ -7,8 +7,10 @@ export interface IMatchMakerOptions {
 
 export class Matchmaker {
 
-	resolver: (...players: any[]) => void;
+	protected resolver: (players: any[]) => void;
+	protected getKey: (player: any) => string;
 	protected queue: any[];
+
 	checkInterval: number; // Time to check for players, value in milliseconds defaults to 5000
 	maxMatchSize: number;
 	minMatchSize: number;
@@ -17,8 +19,9 @@ export class Matchmaker {
 		return this.queue.length;
 	}
 
-	constructor(resolver: (players: any[]) => void, options?: IMatchMakerOptions) {
+	constructor(resolver: (players: any[]) => void, getKey: (player: any) => string, options?: IMatchMakerOptions) {
 		this.resolver = resolver;
+		this.getKey = getKey
 		this.queue = [];
 
 		this.checkInterval = (options && options.checkInterval && options.checkInterval > 0 && options.checkInterval) || 5000;
@@ -28,6 +31,9 @@ export class Matchmaker {
 	}
 
 	public push = (player: any) => {
+		let playerKey = this.getKey(player);
+		if (this.queue.find((player) => { return this.getKey(player) == playerKey; }))
+			throw "User already in queue";
 		this.queue.push(player);
 	}
 
