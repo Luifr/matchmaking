@@ -1,6 +1,6 @@
 {
-  "name": "@luifr/matchmaking",
-  "version": "0.4.0",
+  "name": "matchmaking",
+  "version": "0.4.1",
   "description": "Create matches or lobbies for two or more players/objects",
   "main": "javascript/index.js",
   "types": "javascript/index.d.ts",
@@ -20,7 +20,8 @@
     "url": "https://github.com/Luifr/matchmaker/issues"
   },
   "homepage": "https://github.com/Luifr/matchmaker#readme",
-  "dependencies": {
-    "typescript": "^3.6.3"
+  "dependencies": {},
+  "devDependencies": {
+    "typescript": "^3.6.4"
   }
 }

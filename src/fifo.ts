@@ -4,7 +4,6 @@ interface IFifoMatchMakerOptions extends IMatchMakerOptions {
 
 }
 
-
 export class FifoMatchmaker extends Matchmaker {
 
 	constructor(resolver: (...players: any[]) => void, options?: IFifoMatchMakerOptions) {
@@ -13,14 +12,15 @@ export class FifoMatchmaker extends Matchmaker {
 		setInterval(this.FifoMatch, this.checkInterval);
 	}
 
-	FifoMatch = () => {
-		let players = [];
-		if (this.queue.length < this.minMatchSize)
-			return;
-		while (this.queue.length > 0 && players.length < this.maxMatchSize) {
-			players.push(this.queue.pop());
+	private FifoMatch = () => {
+		let players: any[];
+		while (this.queue.length < this.minMatchSize) {
+			players = [];
+			while (this.queue.length > 0 && players.length < this.maxMatchSize) {
+				players.push(this.queue.pop());
+			}
+			this.resolver(players);
 		}
-		this.resolver(players);
 	}
 
 }

@@ -17,7 +17,7 @@ export class Matchmaker {
 		return this.queue.length;
 	}
 
-	constructor(resolver: (...players: any[]) => void, options?: IMatchMakerOptions) {
+	constructor(resolver: (players: any[]) => void, options?: IMatchMakerOptions) {
 		this.resolver = resolver;
 		this.queue = [];
 
@@ -27,8 +27,8 @@ export class Matchmaker {
 
 	}
 
-	public push = (object: any) => {
-		this.queue.push(object);
+	public push = (player: any) => {
+		this.queue.push(player);
 	}
 
 }
