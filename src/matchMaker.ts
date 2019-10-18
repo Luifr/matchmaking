@@ -37,4 +37,12 @@ export class Matchmaker {
 		this.queue.push(player);
 	}
 
+	public leaveQueue(player: any) {
+		let playerKey = this.getKey(player);
+		let index = this.queue.findIndex((player) => { return this.getKey(player) == playerKey; });
+		if (index == -1)
+			throw "User not in queue";
+		this.queue.splice(index, 1);
+	}
+
 }
