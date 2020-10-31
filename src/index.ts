@@ -1,8 +1,8 @@
 
-import { FifoMatchmaker } from './fifo';
-import { LobbyMaker } from './lobby';
+import 'source-map-support/register';
 
-export { FifoMatchmaker, LobbyMaker };
+export { FifoMatchmaker } from './fifo';
+export { LobbyMaker, Lobby } from './lobby';
 
 // function runGame(players: any[]) { // GAME TEST
 // 	console.log("Game started with:");

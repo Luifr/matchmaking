@@ -57,9 +57,9 @@ export class Matchmaker<P> {
 
 	}
 
-	public push = (player: P): void | Error => {
+	public push = (player: P): void => {
 		if (this.indexOnQueue(player) != -1)
-			return new Error(errorMessages.playerInQueue);
+			throw Error(errorMessages.playerInQueue);
 		this.queue.push(player);
 	}
 
@@ -74,14 +74,14 @@ export class Matchmaker<P> {
 		return IPlayerState.NONE;
 	}
 
-	public leaveQueue(player: P): void | Error {
+	public leaveQueue(player: P): void {
 		let index = this.indexOnQueue(player);
 		if (index == -1)
-			return new Error(errorMessages.playerNotInQueue);
+			throw Error(errorMessages.playerNotInQueue);
 		this.queue.splice(index, 1);
 	}
 
-	public endGame(players: P | P[]): void | Error {
+	public endGame(players: P | P[]): void {
 		players = (players instanceof Array) ? players : [players];
 		let gameIndex: number = -1;
 		for (let player of players) {
@@ -92,7 +92,7 @@ export class Matchmaker<P> {
 			}
 		}
 		if (gameIndex == -1)
-			return new Error(errorMessages.gameDoesNotExists);
+			throw Error(errorMessages.gameDoesNotExists);
 		this.inGame.splice(gameIndex, 1);
 	}
 
