@@ -4,6 +4,7 @@ import {
   Lobby,
   LobbyCreateSettings
 } from '.';
+import { getRandomCharactersCode } from '../utils';
 
 let errorMessages = {
   lobbyIsFull: "Lobby is full",
@@ -67,7 +68,11 @@ export class LobbyMaker<T> {
 
     let settings: ILobbySettings = this.getLobbySettings(options);
 
-    const lobbyId = ''; // TODO: generate lobby code
+    let lobbyId = '';
+    do {
+      lobbyId = getRandomCharactersCode();
+    } while(this.lobbies.has(lobbyId));
+
     const players: ILobbyPlayers<T> = {};
     players[playerKey] = newPlayer;
 

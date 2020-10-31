@@ -15,7 +15,7 @@ interface ILobyInput<T> {
 
 export class Lobby<T> {
 
-  /** Unique lobby id, composed of 6 letters */
+  /** Unique lobby id, composed of 5 letters */
   public id: string;
   /** A map of the current players in the lobby */
   public players: ILobbyPlayers<T>;
