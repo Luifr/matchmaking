@@ -13,7 +13,8 @@ let errorMessages = {
   wrongPassword: "Wrong password",
   passwordRequried: "Password is required",
   morePlayersToStart: "Lobby needs more players to start",
-  cantBeJoinedMidMatch: "Lobby is in match and cant be joined now"
+  cantBeJoinedMidMatch: "Lobby is in match and cant be joined now",
+  cantStartMatchInProgress: "Cant start a match that has already started"
 };
 
 export interface LobbyInfo {
@@ -49,13 +50,13 @@ export class LobbyMaker<T> {
 
   constructor(
     private startCallback: (players: T[]) => void,
-    private getKey: (player: T) => string
+    private getPlayerKey: (player: T) => string
   ) {
     this.lobbies = new Map<string, any>();
   }
 
   public createLobby = (newPlayer: T, lobbyName: string, options?: LobbyCreateSettings): Lobby<T> => {
-    let playerKey = this.getKey(newPlayer);
+    let playerKey = this.getPlayerKey(newPlayer);
 
     // for (let player of Array.from(this.lobbies.values()).map(val => val.players)) {
     //   if (this.getKey(player) == playerKey) {
@@ -112,17 +113,17 @@ export class LobbyMaker<T> {
       throw Error(errorMessages.lobbyIsFull);
     }
 
-    if (lobby.isInMatch && !lobby.settings.canBeJoinedInMatch) {
+    if (lobby.isInMatch && !lobby.settings.canBeJoinedInProgress) {
       throw Error(errorMessages.cantBeJoinedMidMatch);
     }
 
-    let newPlayerKey = this.getKey(newPlayer);
+    let newPlayerKey = this.getPlayerKey(newPlayer);
     for (let player of Object.values(lobby.players)) {
-      if (this.getKey(player) == newPlayerKey) {
+      if (this.getPlayerKey(player) == newPlayerKey) {
         throw Error(errorMessages.playerAlreadyInLobby);
       }
     } // TODO: extract this to method
-    lobby.players[this.getKey(newPlayer)] = newPlayer;
+    lobby.players[this.getPlayerKey(newPlayer)] = newPlayer;
 
     if (playersInLobby + 1 >= lobby.settings.minLobbySize && lobby.settings.autoStartWithMinSize) {
       this.startGame(lobbyId);
@@ -148,14 +149,18 @@ export class LobbyMaker<T> {
       throw Error(errorMessages.lobbyNotFound);
 
     let lobby: Lobby<T> = this.lobbies.get(lobbyId) as Lobby<T>;
-    if (lobby.settings.minLobbySize > lobby.playersLength())
+    if (lobby.settings.minLobbySize > lobby.playersLength()) {
       throw Error(errorMessages.morePlayersToStart);
+    }
+    if (lobby.isInMatch) {
+      throw Error(errorMessages.cantStartMatchInProgress);
+    }
     lobby.isInMatch = true;
     this.startCallback(Object.values(lobby.players));
   }
 
   public removePlayerFromLobby = (lobbyId: string, player: T | string): void => {
-    let playerKey = this.getPlayerKey(player);
+    let playerKey = this.getKeyFromPlayer(player);
     if (!this.lobbies.has(lobbyId)) {
       throw Error(errorMessages.lobbyNotFound);
     }
@@ -219,8 +224,8 @@ export class LobbyMaker<T> {
     return lobbies;
   }
 
-  private getPlayerKey = (player: T | string): string => {
-    return typeof player === 'string' ? player : this.getKey(player);
+  private getKeyFromPlayer = (player: T | string): string => {
+    return typeof player === 'string' ? player : this.getPlayerKey(player);
   }
 
   private getLobbySettings(options?: LobbyCreateSettings): ILobbySettings {
@@ -231,7 +236,7 @@ export class LobbyMaker<T> {
       autoStartWithMinSize: (options && options.autoStartWithMinSize) || false,
       autoStartWithMaxSize: (options && options.autoStartWithMaxSize) || false,
       autoDeleteWhenEmpty: (options && options.autoDeleteWhenEmpty) || true,
-      canBeJoinedInMatch: (options && options.canBeJoinedInMatch) || false,
+      canBeJoinedInProgress: (options && options.canBeJoinedInProgress) || false,
       password: (options && options.password) || "",
       private: (options && options.private) || false,
       maxLobbySize: (options && options.maxLobbySize && options.maxLobbySize > 0 && options.maxLobbySize) || 2,
@@ -246,7 +251,7 @@ export class LobbyMaker<T> {
       autoStartWithMinSize: false,
       autoStartWithMaxSize: false,
       autoDeleteWhenEmpty: true,
-      canBeJoinedInMatch: false,
+      canBeJoinedInProgress: false,
       password: "",
       private: false,
       maxLobbySize: 2,

@@ -10,7 +10,7 @@ export interface ILobbySettings {
   password: string
   private: boolean;
   /** Can a player join this lobby if it is currenty in a match? */
-  canBeJoinedInMatch: boolean;
+  canBeJoinedInProgress: boolean;
   /** When a player join, should the match start if we have the minimum player count? */
   autoStartWithMinSize: boolean;
   /** When a player join, should the match start if the lobby is full? */
