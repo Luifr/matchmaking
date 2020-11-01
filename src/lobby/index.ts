@@ -6,6 +6,8 @@ export interface ILobbyPlayers<T> { [key: string]: T };
 export interface ILobbySettings {
   maxLobbySize: number;
   minLobbySize: number;
+  /** The lobby id is a random sequence of characters, the default length is 5 */
+  idLength: number;
   /**If there is no password it equals to "" */
   password: string
   private: boolean;
@@ -19,4 +21,4 @@ export interface ILobbySettings {
   autoDeleteWhenEmpty: boolean;
 }
 
-export type LobbyCreateSettings = Partial<ILobbySettings> & { tags: string | string[] };
+export type LobbyCreateSettings = Partial<ILobbySettings> & { tags?: string | string[] };

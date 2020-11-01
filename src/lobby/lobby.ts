@@ -4,25 +4,25 @@ import {
   LobbyMaker
 } from '.';
 
-interface ILobyInput<T> {
+interface ILobyInput<P> {
   id: string;
-  players: ILobbyPlayers<T>;
+  players: ILobbyPlayers<P>;
   name: string;
   tags?: string | string[];
   settings: ILobbySettings;
-  lobbyMaker: LobbyMaker<T>;
+  lobbyMaker: LobbyMaker<P>;
 }
 
-export class Lobby<T> {
+export class Lobby<P> {
 
   /** Unique lobby id, composed of 5 letters */
   public id: string;
   /** A map of the current players in the lobby */
-  public players: ILobbyPlayers<T>;
+  public players: ILobbyPlayers<P>;
   /** The player that hosted the lobby
    * Can be undefined if no one joined the lobby while it was being created
   */
-  public host?: T;
+  public host?: P;
   /** The name of the lobby
    * Can be shown on the lobbies list
   */
@@ -31,7 +31,7 @@ export class Lobby<T> {
   public tags: string[] = [];
   /** Lobby settings */
   public settings: ILobbySettings;
-  private lobbyMaker: LobbyMaker<T>;
+  private lobbyMaker: LobbyMaker<P>;
 
   public isInMatch = false;
 
@@ -42,7 +42,7 @@ export class Lobby<T> {
     settings,
     tags,
     lobbyMaker
-  }: ILobyInput<T>) {
+  }: ILobyInput<P>) {
     this.id = id;
     this.players = players;
     this.name = name;
@@ -59,25 +59,25 @@ export class Lobby<T> {
     }
 
     const playersArray = Object.values(players);
-    if (playersArray.length == 1) {
+    if (playersArray.length === 1) {
       this.host = playersArray[0];
     }
   }
 
-  public startGame = (): void => {
-    this.lobbyMaker.startGame(this.id);
+  public startMatch = () => {
+    return this.lobbyMaker.startMatch(this.id).mapErr(this.mapLobbyError);
   }
 
-  public addPlayer = (player: T) => {
-    this.lobbyMaker.joinPlayerInLobby(this.id, player);
+  public addPlayer = (player: P) => {
+    return this.lobbyMaker.joinPlayerInLobby(this.id, player).mapErr(this.mapLobbyError);
   }
 
-  public removePlayer = (player: T): void => {
-    this.lobbyMaker.removePlayerFromLobby(this.id, player)
+  public removePlayer = (player: P) => {
+    return this.lobbyMaker.removePlayerFromLobby(this.id, player).mapErr(this.mapLobbyError);
   }
 
   public closeLobby = () => {
-    this.lobbyMaker.deleteLobby(this.id);
+    return this.lobbyMaker.deleteLobby(this.id);
   }
 
   public playersArray = () => {
@@ -87,5 +87,7 @@ export class Lobby<T> {
   public playersLength = () => {
     return Object.keys(this.players).length;
   }
+
+  mapLobbyError = <T>(err: T) => err as Exclude<T, 'LOBBY_NOT_FOUND'>;
 
 }

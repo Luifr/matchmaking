@@ -4,24 +4,14 @@ import {
   Lobby,
   LobbyCreateSettings
 } from '.';
+import { err, ok, Result } from '../errorHandling';
 import { getRandomCharactersCode } from '../utils';
-
-let errorMessages = {
-  lobbyIsFull: "Lobby is full",
-  lobbyNotFound: "Lobby not found",
-  playerAlreadyInLobby: "Player already in lobby",
-  playerNotInLobby: "Player is not in lobby",
-  wrongPassword: "Wrong password",
-  passwordRequried: "Password is required",
-  morePlayersToStart: "Lobby needs more players to start",
-  cantBeJoinedMidMatch: "Lobby is in match and cant be joined now",
-  cantStartMatchInProgress: "Cant start a match that has already started"
-};
 
 export interface LobbyInfo {
   id: string;
   name: string;
   hostName?: string;
+  isInMatch: boolean;
   passwordIsRequired: boolean;
   currentPlayers: number;
   maxPlayers: number;
@@ -30,6 +20,8 @@ export interface LobbyInfo {
 interface IListLobbyFitler {
   /** Default is false */
   listPrivate: boolean;
+  /** Default is false */
+  listInMatch: boolean;
   /** Default is true */
   listFull: boolean;
   /** Default is true */
@@ -45,35 +37,38 @@ interface IListLobbyFitler {
 // TODO check for duplicates in lobby name
 // TODO expiry time
 // TODO idle time
-export class LobbyMaker<T> {
+export class LobbyMaker<P> {
 
-  protected lobbies: Map<string, Lobby<T>>;
+  protected lobbies: Map<string, Lobby<P>>;
 
   constructor(
-    private startCallback: (players: T[]) => void,
-    private getPlayerKey: (player: T) => string
+    private startCallback: (players: P[]) => void,
+    private getPlayerKey: (player: P) => string
   ) {
     this.lobbies = new Map<string, any>();
   }
 
-  public createLobby = (newPlayer: T, lobbyName: string, options?: LobbyCreateSettings): Lobby<T> => {
-    let playerKey = this.getPlayerKey(newPlayer);
+  public createLobby = (
+    newPlayer: P,
+    lobbyName: string,
+    options?: LobbyCreateSettings
+  ): Result<Lobby<P>, 'PLAYER_ALRAEDY_IN_LOBBY'> => {
+    const playerKey = this.getPlayerKey(newPlayer);
 
-    // for (let player of Array.from(this.lobbies.values()).map(val => val.players)) {
-    //   if (this.getKey(player) == playerKey) {
-    //     throw Error(errorMessages.playerAlreadyInLobby);
-    //   }
-    // }
-    // TODO: check if player is in a lobby already
+    for (const lobby of this.lobbies.values()) {
+      if (this.isPlayerInALobby(lobby, playerKey)) {
+        return err('PLAYER_ALRAEDY_IN_LOBBY');
+      }
+    }
 
-    let settings: ILobbySettings = this.getLobbySettings(options);
+    const settings: ILobbySettings = this.getLobbySettings(options);
 
     let lobbyId = '';
     do {
-      lobbyId = getRandomCharactersCode();
-    } while(this.lobbies.has(lobbyId));
+      lobbyId = getRandomCharactersCode(settings.idLength);
+    } while (this.lobbies.has(lobbyId));
 
-    const players: ILobbyPlayers<T> = {};
+    const players: ILobbyPlayers<P> = {};
     players[playerKey] = newPlayer;
 
     const lobby = new Lobby({
@@ -87,96 +82,108 @@ export class LobbyMaker<T> {
 
     this.lobbies.set(lobbyId, lobby);
 
-    return lobby;
+    return ok(lobby);
   }
 
-  getLobby = (lobbyId: string) => {
-    if (!this.lobbies.has(lobbyId))
-      throw Error(errorMessages.lobbyNotFound);
-    return  this.lobbies.get(lobbyId);
+  getLobby = (lobbyId: string): Result<Lobby<P>, 'LOBBY_NO_FOUND'> => {
+    if (!this.lobbies.has(lobbyId)) {
+      return err('LOBBY_NO_FOUND');
+    }
+    return ok(this.lobbies.get(lobbyId)!);
   }
 
-  public joinPlayerInLobby = (lobbyId: string, newPlayer: T, lobbyPassword?: string): void => {
-    if (!this.lobbies.has(lobbyId))
-      throw Error(errorMessages.lobbyNotFound);
-
+  public joinPlayerInLobby = (lobbyId: string, newPlayer: P, lobbyPassword?: string): Result<undefined,
+    'LOBBY_NO_FOUND' |
+    'PASSWORD_REQUIRED' |
+    'WRONG_PASSWORD' |
+    'LOBBY_IS_FULL' |
+    'CANT_JOIN_IN_PROGRESS' |
+    'PLAYER_IS_ALREADY_IN_LOBBY'
+  > => {
+    if (!this.lobbies.has(lobbyId)) {
+      return err('LOBBY_NO_FOUND');
+    }
 
     const lobby = this.lobbies.get(lobbyId)!;
 
     const correctLobbyPassword = lobby.settings.password;
     if (correctLobbyPassword) {
       if (!lobbyPassword) {
-        throw Error(errorMessages.passwordRequried);
+        return err('PASSWORD_REQUIRED');
       }
       if (lobbyPassword != correctLobbyPassword) {
-        throw Error(errorMessages.wrongPassword);
+        return err('WRONG_PASSWORD');
       }
     }
 
     const playersInLobby = lobby.playersLength();
     if (playersInLobby >= lobby.settings.maxLobbySize) {
-      throw Error(errorMessages.lobbyIsFull);
+      return err('LOBBY_IS_FULL');
     }
 
     if (lobby.isInMatch && !lobby.settings.canBeJoinedInProgress) {
-      throw Error(errorMessages.cantBeJoinedMidMatch);
+      return err('CANT_JOIN_IN_PROGRESS');
     }
 
-    let newPlayerKey = this.getPlayerKey(newPlayer);
-    for (let player of Object.values(lobby.players)) {
-      if (this.getPlayerKey(player) == newPlayerKey) {
-        throw Error(errorMessages.playerAlreadyInLobby);
-      }
-    } // TODO: extract this to method
+    const newPlayerKey = this.getPlayerKey(newPlayer);
+    if (this.isPlayerInALobby(lobby, newPlayerKey)) {
+      return err('PLAYER_IS_ALREADY_IN_LOBBY');
+    }
     lobby.players[this.getPlayerKey(newPlayer)] = newPlayer;
 
     if (playersInLobby + 1 >= lobby.settings.minLobbySize && lobby.settings.autoStartWithMinSize) {
-      this.startGame(lobbyId);
+      this.startMatch(lobbyId);
     }
     else if (playersInLobby + 1 >= lobby.settings.maxLobbySize && lobby.settings.autoStartWithMaxSize) {
-      this.startGame(lobbyId);
+      this.startMatch(lobbyId);
     }
+
+    return ok(undefined);
   }
 
   /** Join the first lobby with that name (the name is not unique!) */
-  public joinPlayerInLobbyByName(lobbyName: string, newPlayer: T, lobbyPassword?: string) {
-    for (let lobby of this.lobbies) {
-      let [id, { name }] = lobby;
-      if (name == lobbyName) {
+  public joinPlayerInLobbyByName(lobbyName: string, newPlayer: P, lobbyPassword?: string) {
+    for (const lobby of this.lobbies) {
+      const [id, { name }] = lobby;
+      if (name === lobbyName) {
         this.joinPlayerInLobby(id, newPlayer, lobbyPassword);
         break;
       }
     }
   }
 
-  public startGame = (lobbyId: any): void => {
-    if (!this.lobbies.has(lobbyId))
-      throw Error(errorMessages.lobbyNotFound);
+  public startMatch = (lobbyId: any): Result<undefined, 'LOBBY_NOT_FOUND' | 'NEED_MORE_PLAYERS_TO_START' | 'MATCH_HAS_ALREADY_STARTED'> => {
+    if (!this.lobbies.has(lobbyId)) {
+      return err('LOBBY_NOT_FOUND');
+    }
 
-    let lobby: Lobby<T> = this.lobbies.get(lobbyId) as Lobby<T>;
+    const lobby: Lobby<P> = this.lobbies.get(lobbyId) as Lobby<P>;
     if (lobby.settings.minLobbySize > lobby.playersLength()) {
-      throw Error(errorMessages.morePlayersToStart);
+      return err('NEED_MORE_PLAYERS_TO_START');
     }
     if (lobby.isInMatch) {
-      throw Error(errorMessages.cantStartMatchInProgress);
+      return err('MATCH_HAS_ALREADY_STARTED');
     }
     lobby.isInMatch = true;
     this.startCallback(Object.values(lobby.players));
+
+    return ok(undefined);
   }
 
-  public removePlayerFromLobby = (lobbyId: string, player: T | string): void => {
-    let playerKey = this.getKeyFromPlayer(player);
+  public removePlayerFromLobby = (lobbyId: string, player: P | string): Result<undefined, 'LOBBY_NOT_FOUND' | 'PLAYER_NOT_IN_LOBBY'> => {
+    const playerKey = this.getKeyFromPlayer(player);
     if (!this.lobbies.has(lobbyId)) {
-      throw Error(errorMessages.lobbyNotFound);
+      return err('LOBBY_NOT_FOUND');
     }
-    let lobby = this.lobbies.get(lobbyId) as Lobby<T>;
+    const lobby = this.lobbies.get(lobbyId) as Lobby<P>;
     if (!lobby.players[playerKey]) {
-      throw Error(errorMessages.playerNotInLobby);
+      return err('PLAYER_NOT_IN_LOBBY');
     }
     delete lobby.players[playerKey];
-    if (lobby.playersLength() == 0 && lobby.settings.autoDeleteWhenEmpty) {
+    if (lobby.playersLength() === 0 && lobby.settings.autoDeleteWhenEmpty) {
       this.deleteLobby(lobbyId);
     }
+    return ok(undefined);
   }
 
   public deleteLobby = (lobbyId: string) => {
@@ -186,34 +193,38 @@ export class LobbyMaker<T> {
     }
   }
 
-  public listLobbies = (filters: Partial<IListLobbyFitler>): LobbyInfo[] => {
-    let lobbies: LobbyInfo[] = [];
+  public listLobbies = (filters?: Partial<IListLobbyFitler>): LobbyInfo[] => {
+    const lobbies: LobbyInfo[] = [];
 
-    for (let lobby of this.lobbies.values()) {
-      if (lobby.settings.private && !filters.listPrivate) {
+    for (const lobby of this.lobbies.values()) {
+      if (lobby.settings.private && !filters?.listPrivate) {
         continue;
       }
 
       const passwordIsRequired = lobby.settings.password != "";
-      if (filters.listWithPassword === false && passwordIsRequired) {
+      if (filters?.listWithPassword === false && passwordIsRequired) {
         continue;
       }
 
       const currentPlayers = lobby.playersLength();
       const maxPlayers = lobby.settings.maxLobbySize;
 
-      if (filters.listFull === false && currentPlayers >= maxPlayers) {
+      if (filters?.listFull === false && currentPlayers >= maxPlayers) {
         continue;
       }
-      if (filters.listEmpty === false && currentPlayers === 0) {
+      if (filters?.listEmpty === false && currentPlayers === 0) {
         continue;
       }
 
-
-      if (filters.hideTags?.find(tag => lobby.tags.includes(tag))) {
+      if (filters?.hideTags?.find(tag => lobby.tags.includes(tag))) {
         continue;
       }
-      if (!filters.showTags?.find(tag => lobby.tags.includes(tag))) {
+      if (filters?.showTags && !filters?.showTags?.find(tag => lobby.tags.includes(tag))) {
+        continue;
+      }
+
+      const isInMatch = lobby.isInMatch;
+      if (isInMatch && !filters?.listInMatch) {
         continue;
       }
 
@@ -221,6 +232,7 @@ export class LobbyMaker<T> {
         id: lobby.id,
         name: lobby.name,
         passwordIsRequired,
+        isInMatch,
         currentPlayers,
         maxPlayers
       });
@@ -229,7 +241,16 @@ export class LobbyMaker<T> {
     return lobbies;
   }
 
-  private getKeyFromPlayer = (player: T | string): string => {
+  private isPlayerInALobby = (lobby: Lobby<P>, playerKey: string) => {
+    for (const player of Object.values(lobby.players)) {
+      if (this.getPlayerKey(player) === playerKey) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  private getKeyFromPlayer = (player: P | string): string => {
     return typeof player === 'string' ? player : this.getPlayerKey(player);
   }
 
@@ -237,9 +258,10 @@ export class LobbyMaker<T> {
     if (!options)
       return this.defaultSettings();
 
-    let returnSetings: ILobbySettings = {
+    const returnSetings: ILobbySettings = {
       autoStartWithMinSize: (options && options.autoStartWithMinSize) || false,
       autoStartWithMaxSize: (options && options.autoStartWithMaxSize) || false,
+      idLength: (options && options.idLength && options.idLength > 0 && options.idLength) || 5,
       autoDeleteWhenEmpty: (options && options.autoDeleteWhenEmpty) || true,
       canBeJoinedInProgress: (options && options.canBeJoinedInProgress) || false,
       password: (options && options.password) || "",
@@ -252,9 +274,10 @@ export class LobbyMaker<T> {
   }
 
   private defaultSettings(): ILobbySettings {
-    let settings: ILobbySettings = {
+    const settings: ILobbySettings = {
       autoStartWithMinSize: false,
       autoStartWithMaxSize: false,
+      idLength: 5,
       autoDeleteWhenEmpty: true,
       canBeJoinedInProgress: false,
       password: "",
