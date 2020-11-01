@@ -12,33 +12,33 @@ type ResultMappers<T, E> = {
   mapErrAsync: MapErrAsyncFunction<T, E>;
 }
 
-type ResultSuccess<T> = { isError: false | undefined, value: T } & ResultMappers<T, undefined>;
-type ResultError<E> = { isError: true, error: E } & ResultMappers<undefined, E>;
-export type Result<T = undefined, E = Error> = ResultSuccess<T> | ResultError<E>;
+type ResultSuccess<T, E> = { isError: false | undefined, value: T } & ResultMappers<T, E>;
+type ResultError<T, E> = { isError: true, error: E } & ResultMappers<T, E>;
+export type Result<T = undefined, E = Error> = ResultSuccess<T, E> | ResultError<T, E>;
 
 
-export const ok = <T>(value: T): ResultSuccess<T> => {
+export const ok = <T>(value: T): Result<T, any> => {
   return {
     isError: false,
     value,
-    map: (resultMapper) => {
+    map: <U>(resultMapper: (value: T) => U): Result<U, Error> => {
       const mappedValue = resultMapper(value);
       return ok(mappedValue);
     },
-    mapErr: () => {
+    mapErr: (_resultMapper) => {
       return ok(value);
     },
     mapAsync: async (resultMapper) => {
       const mappedValue = await resultMapper(value);
       return ok(mappedValue);
     },
-    mapErrAsync: async () => {
+    mapErrAsync: async (_resultMapper) => {
       return ok(value);
     }
   };
 }
 
-export const err = <T>(error: T): ResultError<T> => {
+export const err = <T>(error: T): Result<any, T> => {
   return {
     isError: true,
     error,

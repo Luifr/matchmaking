@@ -102,3 +102,6 @@ public
 
 # Ts transpiled files
 dist/
+
+# Test file
+debug.ts
